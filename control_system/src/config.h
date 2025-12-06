@@ -16,7 +16,7 @@ const uint16_t PIN_MOTOR_3 = PA4;
 const uint16_t PIN_MOTOR_4 = PA3;
 
 // инвертирование направления моторов (true - инвертировать, false - не инвертировать)
-const bool MOTOR_INVERT[4] = {false, false, false, false};
+const bool MOTOR_INVERT[4] = {true, false, false, false};
 
 // подключение сервопривода камеры 
 const uint16_t PIN_SERVO_CAM = PA7;

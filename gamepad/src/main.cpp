@@ -13,6 +13,10 @@ KalmanFilter kalman_joy1Y = {ADC_MAX_VALUE / 2, KALMAN_P_INIT, 0, KALMAN_Q, KALM
 KalmanFilter kalman_joy2X = {ADC_MAX_VALUE / 2, KALMAN_P_INIT, 0, KALMAN_Q, KALMAN_R};
 KalmanFilter kalman_joy2Y = {ADC_MAX_VALUE / 2, KALMAN_P_INIT, 0, KALMAN_Q, KALMAN_R};
 
+uint32_t ledTimer;
+int ledState = LOW;
+
+
 // Применение фильтра Калмана
 float applyKalmanFilter(KalmanFilter &kf, float measurement) {
     // Предсказание
@@ -62,6 +66,7 @@ void readData(int* joy, int* buttons) {
     joy[1] = readJoystick(JOYSTICK1_Y, joy1Y_zero, kalman_joy1Y, coeffs.stick1_y);  // joy1Y
     joy[2] = readJoystick(JOYSTICK2_X, joy2X_zero, kalman_joy2X, coeffs.stick2_x);  // joy2X
     joy[3] = readJoystick(JOYSTICK2_Y, joy2Y_zero, kalman_joy2Y, coeffs.stick2_y);  // joy2Y
+
 
     // Кнопки
     buttons[0] = (!digitalRead(BUTTON1) && digitalRead(BUTTON2)) ? -1 : 
@@ -114,6 +119,14 @@ void setup() {
 void loop() {
     static unsigned long lastTime = 0;
     unsigned long currentTime = millis();
+
+    // мигалка для индикации работы (период 500 мс)
+    if (millis() - ledTimer >= 500){
+        ledTimer = millis();
+        ledState = !ledState;
+        digitalWrite(LED_PIN, ledState);
+        // if (DEBUG) Serial.println(ledState);
+    }
     
     if (currentTime - lastTime >= DATA_INTERVAL) {
         int joy[6];

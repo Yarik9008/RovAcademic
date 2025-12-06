@@ -18,7 +18,7 @@ int ledState = LOW;
 
 // Массив для отправки данных на полезную нагрузку
 // [MOTOR1, MOTOR2, MOTOR3, MOTOR4, CAM, GRIP]
-int data_output[6] = {1500, 1500, 1500, 1500, 0, 0};
+int data_output[6] = {1500, 1500, 1500, 1500, 1500, 1300};
 
 
 void setup() {
@@ -29,7 +29,6 @@ void setup() {
   Serial.begin(BITRATE);
 
   // подключение сериала для общения с постом управления 
-  // Serial1 на STM32F103 по умолчанию использует PA9 (TX) и PA10 (RX)
   Serial1.setRx(UART_RX);
   Serial1.setTx(UART_TX);
   Serial1.begin(BITRATE);
@@ -49,14 +48,14 @@ void setup() {
   servos[4].setSpeed(SPEED_SERVO);
   servos[4].setAccel(ACCELERATE_SERVO);
   servos[4].writeMicroseconds(1500);
-  servos[4].setAutoDetach(false);
+  servos[4].setAutoDetach(true);
 
   // подключаем сервопривод манипулятора
-  servos[5].attach(PIN_SERVO_ARM, 1000, 2000, 90);
-  servos[5].setSpeed(SPEED_SERVO);
-  servos[5].setAccel(ACCELERATE_SERVO);
-  servos[5].writeMicroseconds(1500);
-  servos[5].setAutoDetach(false);
+  servos[5].attach(PIN_SERVO_ARM, 1000, 2000, 52);
+  servos[5].setSpeed(200);
+  servos[5].setAccel(1.0);
+  servos[5].setTarget(1300);
+  servos[5].setAutoDetach(true);
 
 }
 
@@ -75,7 +74,7 @@ void loop() {
     ledTimer = millis();
     ledState = !ledState;
     digitalWrite(LED_PIN, ledState);
-    if (DEBUG) Serial.println(ledState);
+    // if (DEBUG) Serial.println(ledState);
   }
     
   // если данные получены
@@ -84,7 +83,7 @@ void loop() {
     // парсим данные по резделителю возвращает список интов 
     GParser data = GParser(serialCom.buf, ' ');
 
-    if (DEBUG) Serial.println(serialCom.buf);
+    // if (DEBUG) Serial.println(serialCom.buf);
 
     if (data.amount() == 9){
       // 1500 1500 1500 1500 1 1 1 1 1
@@ -97,10 +96,16 @@ void loop() {
       data_output[0] = data_input[3] + data_input[2] - 1500;  // MOTOR1
       data_output[1] = data_input[3] - data_input[2] + 1500;  // MOTOR2
       data_output[2] = data_input[1];  // MOTOR3
-      data_output[3] = data_input[1];  // MOTOR4
-      data_output[4] = 1500;  // CAM
-      data_output[5] = 1500;  // GRIP
+      data_output[3] = 3000 - data_input[1];  // MOTOR4
 
+      data_output[4] = data_output[4] + data_input[4] * 20 ;  // CAM
+
+      if (data_input[5] == 1) {
+        data_output[5] = 2000;
+      } else if (data_input[5] == -1) {
+        data_output[5] = 1300;
+      } 
+    
       // проверка и ограничение значений в диапазоне 1000-2000
       for (int i = 0; i < 6; i++) {
         if (data_output[i] < 1000) {
@@ -110,9 +115,18 @@ void loop() {
         }
       }
 
+      if (DEBUG) {
+        Serial.print(data_output[0]); Serial.print(" ");
+        Serial.print(data_output[1]); Serial.print(" ");
+        Serial.print(data_output[2]); Serial.print(" ");
+        Serial.print(data_output[3]); Serial.print(" ");
+        Serial.print(data_output[4]); Serial.print(" ");
+        Serial.println(data_output[5]);
+      }
+
       // отправляем значения на полезную нагрузку
       for (int i = 0; i < 6; i++) {
-        servos[i].writeMicroseconds(data_output[i]);
+        servos[i].setTarget(data_output[i]);
       }  
 
     }

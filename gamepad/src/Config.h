@@ -55,10 +55,10 @@
 
 // Структуры
 struct JoystickCoefficients {
-    float stick1_x = 0.5;
-    float stick1_y = 0.3;
-    float stick2_x = 0.75;
-    float stick2_y = 1.0;
+    float stick1_x = 0;
+    float stick1_y = 0.7;
+    float stick2_x = 0.5;
+    float stick2_y = 0.7;
 };
 
 struct KalmanFilter {
