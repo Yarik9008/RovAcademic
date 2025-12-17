@@ -34,6 +34,9 @@
 // DEBAG
 #define DEBUG_JOYSTICK true
 
+// Тест робота на выносливость
+#define TEST_ROBOT true
+
 // Фильтр Калмана
 #define KALMAN_Q 25
 #define KALMAN_R 20

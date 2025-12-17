@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
-// Встроенный LED на Blue Pill находится на пине PB13
-#define LED_PIN PB13
+// Встроенный LED на Blue Pill находится на пине PC13
+#define LED_PIN PC13
 
 void setup() {
   // Инициализация Serial для вывода в терминал

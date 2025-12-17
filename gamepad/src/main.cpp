@@ -66,7 +66,12 @@ void readData(int* joy, int* buttons) {
     joy[1] = readJoystick(JOYSTICK1_Y, joy1Y_zero, kalman_joy1Y, coeffs.stick1_y);  // joy1Y
     joy[2] = readJoystick(JOYSTICK2_X, joy2X_zero, kalman_joy2X, coeffs.stick2_x);  // joy2X
     joy[3] = readJoystick(JOYSTICK2_Y, joy2Y_zero, kalman_joy2Y, coeffs.stick2_y);  // joy2Y
-
+    
+    // Тест робота на выносливость 
+    if (TEST_ROBOT) {
+        joy[1] = 1250;
+        joy[3] = 1750;
+    }
 
     // Кнопки
     buttons[0] = (!digitalRead(BUTTON1) && digitalRead(BUTTON2)) ? -1 : 
@@ -82,14 +87,11 @@ void readData(int* joy, int* buttons) {
 void setup() {
     // Настройка пинов
     pinMode(LED_PIN, OUTPUT);
-    pinMode(BUTTON1, INPUT_PULLUP);
-    pinMode(BUTTON2, INPUT_PULLUP);
-    pinMode(BUTTON3, INPUT_PULLUP);
-    pinMode(BUTTON4, INPUT_PULLUP);
-    pinMode(BUTTON5, INPUT_PULLUP);
-    pinMode(BUTTON6, INPUT_PULLUP);
-    pinMode(BUTTON7, INPUT_PULLUP);
-    pinMode(BUTTON8, INPUT_PULLUP);
+    
+    const int buttonPins[] = {BUTTON1, BUTTON2, BUTTON3, BUTTON4, BUTTON5, BUTTON6, BUTTON7, BUTTON8};
+    for (int i = 0; i < 8; i++) {
+        pinMode(buttonPins[i], INPUT_PULLUP);
+    }
     
     // Настройка ADC
     analogReadResolution(12);
@@ -113,6 +115,11 @@ void setup() {
     Serial1.setTx(SERIAL1_TX);
     Serial1.begin(SERIAL_BAUD);
     
+    // костыль, чтобы робот раздуплился 
+    if (TEST_ROBOT) {
+        delay(10000);
+    }
+
     Serial.println("ROV Gamepad Ready");
 }
 

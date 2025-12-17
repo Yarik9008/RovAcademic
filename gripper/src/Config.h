@@ -1,75 +1,53 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-// Автоматическое определение микроконтроллера
-#ifdef CH32V003
-    #include "Config_CH32V003.h"
-#else
-    // Конфигурация для STM32G030F6P6 и других STM32
-    // Пины для измерения импульсов и тока (STM32G030F6P6)
-    #define PULSE_INPUT_PIN PA2
-    #define I2C_SDA_PIN PB7
-    #define I2C_SCL_PIN PB6
+// ========== КОНФИГУРАЦИЯ ПИНОВ ==========
+// UART для телеметрии
+#define UART_RX PA10
+#define UART_TX PA9
+#define SERIAL_BAUD_RATE 57600
 
-    // Пины для драйвера двигателя L9110s (только 2 пина управления)
-    #define MOTOR_IA_PIN PA0
-    #define MOTOR_IB_PIN PA1
+// PWM вход для управления
+#define PULSE_INPUT_PIN PA7
 
-    // Диапазон PWM сигнала
-    #define PWM_MIN_US 900
-    #define PWM_MAX_US 2400
+// I2C для датчика тока
+#define I2C_SDA_PIN PB7
+#define I2C_SCL_PIN PB6
 
-    // Мертвая зона вокруг нейтрали
-    #define PWM_DEADZONE_MIN_US 1400
-    #define PWM_DEADZONE_MAX_US 1600
+// Драйвер двигателя DRV8870DDAR(MS)
+#define MOTOR_IA_PIN PA11
+#define MOTOR_IB_PIN PA12
 
-    // Нейтральное значение PWM
-    #define PWM_NEUTRAL_US 1500
+// Встроенный светодиод
+#define LED_BUILTIN_PIN PC13
+#define LED_BLINK_PERIOD_MS 500
 
-    // Скорости двигателя
-    #define MOTOR_SPEED_FORWARD 255
-    #define MOTOR_SPEED_REVERSE -255
-    #define MOTOR_SPEED_STOP 0
+// ========== PWM ПАРАМЕТРЫ ==========
+#define PWM_MIN_US 900
+#define PWM_MAX_US 2400
+#define PWM_DEADZONE_MIN_US 1400
+#define PWM_DEADZONE_MAX_US 1600
 
-    // Настройки плавного старта
-    #define SMOOTH_START_ENABLED true
-    #define SMOOTH_START_STEP_MS 10        // Интервал между шагами (мс) - уменьшен для более плавного старта
-    #define SMOOTH_START_STEP_SIZE 8       // Размер шага скорости - уменьшен для более плавного старта
-    #define SMOOTH_START_MIN_SPEED 10      // Минимальная скорость для плавного старта - уменьшена
+// Диапазон валидных импульсов (для фильтрации)
+#define PULSE_MIN_US 500
+#define PULSE_MAX_US 3000
 
-    // Интервал измерения тока (мс)
-    #define CURRENT_MEASUREMENT_INTERVAL 50
+// Защита от дребезга (микросекунды)
+#define DEBOUNCE_US 10
 
-    // Мертвая зона для тока (мА)
-    #define CURRENT_DEADZONE_MA 0.5
+// ========== НАСТРОЙКИ ДВИГАТЕЛЯ ==========
+#define MOTOR_SPEED_FORWARD 255
+#define MOTOR_SPEED_REVERSE -255
+#define MOTOR_SPEED_STOP 0
 
-    // Количество образцов для калибровки холостого тока
-    #define IDLE_CURRENT_SAMPLES 20
+// ========== ЗАЩИТА ОТ ПЕРЕГРУЗКИ ==========
+#define CURRENT_PROTECTION_THRESHOLD_MA 10.0
+#define MOTOR_START_DELAY_MS 1000
 
-    // Интервал между сэмплами холостого тока (мс)
-    #define IDLE_CURRENT_SAMPLE_INTERVAL_MS 100
+// ========== ИНТЕРВАЛЫ И ТАЙМЕРЫ ==========
 
-    // Порог защиты от перегрузки (мА)
-    #define CURRENT_PROTECTION_THRESHOLD_MA 10
-
-    // Задержка измерения тока после старта двигателя (мс)
-    #define MOTOR_START_DELAY_MS 1000  // 2 секунды для избежания пусковых токов
-
-    // Диапазон валидных импульсов (мкс)
-    #define PULSE_MIN_US 500
-    #define PULSE_MAX_US 3000
-
-    // Порог для обнаружения слишком больших невалидных импульсов (мкс)
-    #define PULSE_MAX_INVALID_US 100000
-
-    // Интервал обновления двигателя (мс)
-    #define MOTOR_UPDATE_INTERVAL_MS 50
-
-    // Интервал вывода данных (мс)
-    #define DATA_PRINT_INTERVAL_MS 100
-
-    // Скорость последовательного порта
-    #define SERIAL_BAUD_RATE 115200
-#endif
+#define DATA_PRINT_INTERVAL_MS 100
+#define MAIN_LOOP_INTERVAL_MS 20
 
 #endif // CONFIG_H
+
