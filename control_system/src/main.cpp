@@ -13,7 +13,7 @@ AsyncStream<100> serialCom(&Serial1, '\n');
 
 uint32_t turnTimer = 0;
 uint32_t ledTimer = 0;
-uint32_t lastDataTime = 0;  // время последнего получения данных
+uint32_t lastDataTime = 0;  
 int ledState = LOW;
 
 // Массив для отправки данных на полезную нагрузку
@@ -144,7 +144,7 @@ void loop() {
       data_output[0] = data_input[3] + data_input[2] - SERVO_CENTER;  // MOTOR1: joy2X + joy2Y
       data_output[1] = data_input[3] - data_input[2] + SERVO_CENTER;  // MOTOR2: joy2X - joy2Y
       data_output[2] = data_input[1];  // MOTOR3: прямое значение joy1Y
-      data_output[3] = (SERVO_MAX * 2) - data_input[1];  // MOTOR4: инвертированное joy1Y
+      data_output[3] = (SERVO_CENTER * 2) - data_input[1];  // MOTOR4: инвертированное joy1Y
 
       // Управление камерой: накопительное изменение позиции
       int16_t cam_delta = data_input[4] * CAM_STEP;

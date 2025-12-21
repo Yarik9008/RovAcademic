@@ -1,5 +1,3 @@
-#include <Arduino.h>
-
 // режим отладки
 const bool DEBUG = true;
 
@@ -17,7 +15,7 @@ const uint16_t PIN_MOTOR_2 = PA5;
 const uint16_t PIN_MOTOR_3 = PA4;
 const uint16_t PIN_MOTOR_4 = PA3;
 
-// инвертирование направления моторов (true - инвертировать, false - не инвертировать)
+// инвертирование направления моторов 
 const bool MOTOR_INVERT[4] = {true, false, false, false};
 
 // подключение сервопривода камеры 

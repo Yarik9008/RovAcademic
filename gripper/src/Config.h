@@ -5,7 +5,7 @@
 // UART для телеметрии
 #define UART_RX PA10
 #define UART_TX PA9
-#define SERIAL_BAUD_RATE 57600
+#define SERIAL_BAUD_RATE 115200
 
 // PWM вход для управления
 #define PULSE_INPUT_PIN PA7
@@ -41,7 +41,7 @@
 #define MOTOR_SPEED_STOP 0
 
 // ========== ЗАЩИТА ОТ ПЕРЕГРУЗКИ ==========
-#define CURRENT_PROTECTION_THRESHOLD_MA 10.0
+#define CURRENT_PROTECTION_THRESHOLD_MA 200.0
 #define MOTOR_START_DELAY_MS 1000
 
 // ========== ИНТЕРВАЛЫ И ТАЙМЕРЫ ==========

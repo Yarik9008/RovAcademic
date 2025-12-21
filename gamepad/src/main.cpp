@@ -1,5 +1,6 @@
+// подключаем библиотеки 
 #include <Arduino.h>
-#include "Config.h"
+#include <config.h>
 
 // Калибровочные значения (центр джойстиков)
 int joy1X_zero = ADC_MAX_VALUE / 2;
@@ -15,7 +16,6 @@ KalmanFilter kalman_joy2Y = {ADC_MAX_VALUE / 2, KALMAN_P_INIT, 0, KALMAN_Q, KALM
 
 uint32_t ledTimer;
 int ledState = LOW;
-
 
 // Применение фильтра Калмана
 float applyKalmanFilter(KalmanFilter &kf, float measurement) {
@@ -97,7 +97,6 @@ void setup() {
     analogReadResolution(12);
     
     // Калибровка джойстиков (чтение центральных значений)
-    delay(100);  // Небольшая задержка для стабилизации
     joy1X_zero = analogRead(JOYSTICK1_X);
     joy1Y_zero = analogRead(JOYSTICK1_Y);
     joy2X_zero = analogRead(JOYSTICK2_X);
@@ -109,18 +108,15 @@ void setup() {
     kalman_joy2X.x = joy2X_zero;
     kalman_joy2Y.x = joy2Y_zero;
     
-    // Инициализация Serial
-    Serial.begin(DEBUG_BAUD);
-    Serial1.setRx(SERIAL1_RX);
-    Serial1.setTx(SERIAL1_TX);
-    Serial1.begin(SERIAL_BAUD);
-    
-    // костыль, чтобы робот раздуплился 
-    if (TEST_ROBOT) {
-        delay(10000);
-    }
+    // подключение отладочного сериала 
+    Serial.begin(BITRATE);
 
-    Serial.println("ROV Gamepad Ready");
+    // подключение сериала для общения с постом управления 
+    Serial1.setRx(UART_RX);
+    Serial1.setTx(UART_TX);
+    Serial1.begin(BITRATE);
+    
+
 }
 
 void loop() {
@@ -141,7 +137,7 @@ void loop() {
         
         readData(joy, buttons);
         
-        if (DEBUG_JOYSTICK) { 
+        if (DEBUG) { 
             // Вывод данных через Serial (отладка)
             Serial.print("joy1X:"); Serial.print(joy[0]); Serial.print(" ");
             Serial.print("joy1Y:"); Serial.print(joy[1]); Serial.print(" ");

@@ -1,60 +1,53 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+// режим отладки
+const bool DEBUG = true;
 
-// Serial порты
-#define SERIAL1_RX PA10
-#define SERIAL1_TX PA9   
+// тест робота на выносливость
+const bool TEST_ROBOT = true;
 
-// Джойстики
-#define JOYSTICK1_X PA2
-#define JOYSTICK1_Y PA3
-#define JOYSTICK2_X PA5
-#define JOYSTICK2_Y PA4
+// подключение светодиода
+const uint16_t LED_PIN = PC13;
 
-// Кнопки
-#define BUTTON1 PB12
-#define BUTTON2 PB13
-#define BUTTON3 PB14
-#define BUTTON4 PB15
-#define BUTTON5 PB6
-#define BUTTON6 PB7
-#define BUTTON7 PB8
-#define BUTTON8 PB9
+// подключение UART
+const uint16_t UART_RX = PA10;
+const uint16_t UART_TX = PA9;
+const uint16_t BITRATE = 57600;
 
-// Светодиод
-#define LED_PIN PC13
+// подключение джойстиков
+const uint16_t JOYSTICK1_X = PA3;
+const uint16_t JOYSTICK1_Y = PA4;
+const uint16_t JOYSTICK2_X = PA5;
+const uint16_t JOYSTICK2_Y = PA6;
 
-// ADC
-#define ADC_MAX_VALUE 4095
+// подключение кнопок
+const uint16_t BUTTON1 = PA15;
+const uint16_t BUTTON2 = PB3;
+const uint16_t BUTTON3 = PB4;
+const uint16_t BUTTON4 = PB5;
+const uint16_t BUTTON5 = PB6;
+const uint16_t BUTTON6 = PB7;
+const uint16_t BUTTON7 = PB8;
+const uint16_t BUTTON8 = PB9;
 
-// Serial скорости
-#define SERIAL_BAUD 57600
-#define DEBUG_BAUD 115200
+// настройки ADC
+const uint16_t ADC_MAX_VALUE = 4095;
 
-// DEBAG
-#define DEBUG_JOYSTICK true
+// мертвая зона джойстика
+const uint16_t DEAD_ZONE = 250;
 
-// Тест робота на выносливость
-#define TEST_ROBOT true
+// диапазон джойстика для нормализации
+const uint16_t MIN_JOYSTIK_RANGE = 1000;
+const uint16_t CENTER_JOYSTIK_RANGE = 1500;
+const uint16_t MAX_JOYSTICK_RANGE = 2000;
 
-// Фильтр Калмана
-#define KALMAN_Q 25
-#define KALMAN_R 20
-#define KALMAN_P_INIT 1000
+// настройки фильтра Калмана
+const float KALMAN_Q = 25.0;
+const float KALMAN_R = 20.0;
+const float KALMAN_P_INIT = 1000.0;
 
-// Таймеры
-#define DATA_INTERVAL 20
-#define LED_INTERVAL 200
-#define CAMERA_UPDATE_INTERVAL 100
-
-// Мертвая зона джойстика
-#define DEAD_ZONE 250
-
-// Диапазон джойстика для нормализации
-#define MAX_JOYSTICK_RANGE 2000
-#define CENTER_JOYSTIK_RANGE 1500
-#define MIN_JOYSTIK_RANGE 1000
-
+// интервалы таймеров (мс)
+const uint16_t DATA_INTERVAL = 20;
+const uint16_t LED_INTERVAL = 200;
+const uint16_t CAMERA_UPDATE_INTERVAL = 100;
 
 // Структуры
 struct JoystickCoefficients {
@@ -86,5 +79,3 @@ struct JoystickData {
     int button7;
     int button8;
 };
-
-#endif // CONFIG_H

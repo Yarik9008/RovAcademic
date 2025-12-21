@@ -4,7 +4,7 @@
 // Пины для UART телеметрии (USART1)
 #define UART_RX PA10
 #define UART_TX PA9
-#define SERIAL_BAUD_RATE 57600
+#define SERIAL_BAUD_RATE 115200
 
 // Пины для I2C
 #define I2C_SDA_PIN PB7

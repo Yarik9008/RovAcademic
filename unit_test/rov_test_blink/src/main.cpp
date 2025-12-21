@@ -6,21 +6,19 @@
 void setup() {
   // Инициализация Serial для вывода в терминал
   Serial.begin(115200);
-  
-  // Инициализация пина LED как выход
+
+  // Инициализация светодиода
   pinMode(LED_PIN, OUTPUT);
-  
-  Serial.println("Blink test started");
 }
 
 void loop() {
   // Включаем LED
-  digitalWrite(LED_PIN, LOW);  // На Blue Pill LED активен при LOW
+  digitalWrite(LED_PIN, LOW);  
   Serial.println("LED ON");
-  delay(500);                   // Ждем 500 мс
+  delay(500);                 
   
   // Выключаем LED
-  digitalWrite(LED_PIN, HIGH); // Выключаем LED
+  digitalWrite(LED_PIN, HIGH); 
   Serial.println("LED OFF");
-  delay(500);                   // Ждем 500 мс
+  delay(500);                  
 }
