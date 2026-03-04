@@ -2,7 +2,7 @@
 
 ## Создание релиза v0.1 на GitHub
 
-1. Перейдите на страницу репозитория: https://github.com/Yarik9008/rov_gamepad
+1. Перейдите на страницу репозитория: https://github.com/Yarik9008/RovAcademic
 2. Нажмите на "Releases" в правой панели
 3. Нажмите "Create a new release"
 4. Выберите тег "v0.1" из выпадающего списка
