@@ -41,7 +41,7 @@
 #define MOTOR_SPEED_STOP 0
 
 // ========== ЗАЩИТА ОТ ПЕРЕГРУЗКИ ==========
-#define CURRENT_PROTECTION_THRESHOLD_MA 200.0
+#define CURRENT_PROTECTION_THRESHOLD_MA 280.0
 #define MOTOR_START_DELAY_MS 1000
 
 // ========== ИНТЕРВАЛЫ И ТАЙМЕРЫ ==========

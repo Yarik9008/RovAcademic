@@ -31,7 +31,7 @@ float applyKalmanFilter(KalmanFilter &kf, float measurement) {
 }
 
 // Чтение и нормализация джойстика с фильтрацией Калмана
-int readJoystick(int pin, int zero, KalmanFilter &kf, float coefficient) {
+int readJoystick(int pin, int zero, KalmanFilter &kf, float coefficient, bool invert) {
     // Опрос пина
     int raw = analogRead(pin);
     
@@ -43,7 +43,7 @@ int readJoystick(int pin, int zero, KalmanFilter &kf, float coefficient) {
     
     // Мертвая зона
     if (abs(offset) < DEAD_ZONE) offset = 0;
-    
+
     // Ограничение диапазона
     offset = constrain(offset, -MAX_JOYSTICK_RANGE, MAX_JOYSTICK_RANGE);
     
@@ -53,7 +53,9 @@ int readJoystick(int pin, int zero, KalmanFilter &kf, float coefficient) {
     // Преобразование в диапазон MIN_JOYSTIK_RANGE - MAX_JOYSTICK_RANGE
     // где CENTER_JOYSTIK_RANGE = центр
     int range = MAX_JOYSTICK_RANGE - MIN_JOYSTIK_RANGE;
-    return CENTER_JOYSTIK_RANGE + (offset * range) / (MAX_JOYSTICK_RANGE * 2);
+
+    int value = CENTER_JOYSTIK_RANGE + (offset * range) / (MAX_JOYSTICK_RANGE * 2);
+    return invert ? (3000 - value) : value;
 }
 
 // Чтение всех данных
@@ -62,10 +64,10 @@ void readData(int* joy, int* buttons) {
     static const JoystickCoefficients coeffs;
     
     // Джойстики (значения в диапазоне MIN_JOYSTIK_RANGE - MAX_JOYSTICK_RANGE)
-    joy[0] = readJoystick(JOYSTICK1_X, joy1X_zero, kalman_joy1X, coeffs.stick1_x);  // joy1X
-    joy[1] = readJoystick(JOYSTICK1_Y, joy1Y_zero, kalman_joy1Y, coeffs.stick1_y);  // joy1Y
-    joy[2] = readJoystick(JOYSTICK2_X, joy2X_zero, kalman_joy2X, coeffs.stick2_x);  // joy2X
-    joy[3] = readJoystick(JOYSTICK2_Y, joy2Y_zero, kalman_joy2Y, coeffs.stick2_y);  // joy2Y
+    joy[0] = readJoystick(JOYSTICK1_X, joy1X_zero, kalman_joy1X, coeffs.stick1_x, INVERT_JOYSTICK1_X);  // joy1X
+    joy[1] = readJoystick(JOYSTICK1_Y, joy1Y_zero, kalman_joy1Y, coeffs.stick1_y, INVERT_JOYSTICK1_Y);  // joy1Y
+    joy[2] = readJoystick(JOYSTICK2_X, joy2X_zero, kalman_joy2X, coeffs.stick2_x, INVERT_JOYSTICK2_X);  // joy2X
+    joy[3] = readJoystick(JOYSTICK2_Y, joy2Y_zero, kalman_joy2Y, coeffs.stick2_y, INVERT_JOYSTICK2_Y);  // joy2Y
     
     // Тест робота на выносливость 
     if (TEST_ROBOT) {
@@ -74,8 +76,9 @@ void readData(int* joy, int* buttons) {
     }
 
     // Кнопки
-    buttons[0] = (!digitalRead(BUTTON1) && digitalRead(BUTTON2)) ? -1 : 
-                 (digitalRead(BUTTON1) && !digitalRead(BUTTON2)) ? 1 : 0;  // servo_cam
+    buttons[0] = (!digitalRead(BUTTON2) && digitalRead(BUTTON1)) ? -1 : 
+                 (digitalRead(BUTTON2) && !digitalRead(BUTTON1)) ? 1 : 0;  // servo_cam
+                 
     buttons[1] = (!digitalRead(BUTTON3) && digitalRead(BUTTON4)) ? -1 : 
                  (digitalRead(BUTTON3) && !digitalRead(BUTTON4)) ? 1 : 0;  // gripper
     buttons[2] = (!digitalRead(BUTTON5) && digitalRead(BUTTON6)) ? 1 : 

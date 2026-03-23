@@ -60,7 +60,7 @@ void setup() {
   servos[5].setSpeed(ARM_SPEED);
   servos[5].setAccel(ARM_ACCEL);
   servos[5].setTarget(GRIP_CLOSE);
-  servos[5].setAutoDetach(true);
+  servos[5].setAutoDetach(false);
 
   // Задержка для инициализации моторов
   delay(3000);

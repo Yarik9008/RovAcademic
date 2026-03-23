@@ -2,7 +2,7 @@
 const bool DEBUG = true;
 
 // тест робота на выносливость
-const bool TEST_ROBOT = true;
+const bool TEST_ROBOT = false;
 
 // подключение светодиода
 const uint16_t LED_PIN = PC13;
@@ -17,6 +17,12 @@ const uint16_t JOYSTICK1_X = PA3;
 const uint16_t JOYSTICK1_Y = PA4;
 const uint16_t JOYSTICK2_X = PA5;
 const uint16_t JOYSTICK2_Y = PA6;
+
+// инверсия осей джойстиков
+const bool INVERT_JOYSTICK1_X = false;
+const bool INVERT_JOYSTICK1_Y = true;
+const bool INVERT_JOYSTICK2_X = true;
+const bool INVERT_JOYSTICK2_Y = false;
 
 // подключение кнопок
 const uint16_t BUTTON1 = PA15;

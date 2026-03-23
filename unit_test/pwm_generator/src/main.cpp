@@ -2,7 +2,7 @@
 #include <Servo.h>
 
 Servo servo;
-const int SERVO_PIN = PA2;
+const int SERVO_PIN = PB1;
 
 void setup() {
   // Подключение сервопривода (1000-2000 мкс)
