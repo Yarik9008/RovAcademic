@@ -41,9 +41,7 @@ const uint16_t SERVO_CENTER = 1500;
 // Константы для манипулятора
 const uint16_t GRIP_OPEN = 2000;
 const uint16_t GRIP_CLOSE = 1000;
-const uint16_t ARM_SPEED = 500;
-const float ARM_ACCEL = 1.0;
-const uint16_t ARM_INIT_ANGLE = 90;
+const uint16_t ARM_INIT_ANGLE = 0;
 
 // Константы для камеры
 const int16_t CAM_STEP = 20;  // шаг изменения позиции камеры

@@ -53,13 +53,10 @@ void setup() {
   servos[4].setSpeed(SPEED_SERVO);
   servos[4].setAccel(ACCELERATE_SERVO);
   servos[4].writeMicroseconds(SERVO_CENTER);
-  servos[4].setAutoDetach(false);
+  servos[4].setAutoDetach(true);
 
-  // подключаем сервопривод манипулятора
   servos[5].attach(PIN_SERVO_ARM, SERVO_MIN, SERVO_MAX, ARM_INIT_ANGLE);
-  servos[5].setSpeed(ARM_SPEED);
-  servos[5].setAccel(ARM_ACCEL);
-  servos[5].setTarget(GRIP_CLOSE);
+  servos[5].writeMicroseconds(GRIP_CLOSE);
   servos[5].setAutoDetach(false);
 
   // Задержка для инициализации моторов
@@ -73,7 +70,11 @@ void loop() {
     // если данные не получены в течение таймаута, устанавливаем значения по умолчанию
     for (int i = 0; i < 6; i++) {
       data_output[i] = data_output_default[i];
-      servos[i].setTarget(data_output[i]);
+      if (i == 5) {
+        servos[5].writeMicroseconds((uint16_t)data_output[5]);
+      } else {
+        servos[i].setTarget(data_output[i]);
+      }
     }
   }
   
@@ -173,9 +174,13 @@ void loop() {
         Serial.println(data_output[5]);
       }
 
-      // отправляем значения на полезную нагрузку
+      // отправляем значения на полезную нагрузку (манипулятор — без сглаживания)
       for (int i = 0; i < 6; i++) {
-        servos[i].setTarget(data_output[i]);
+        if (i == 5) {
+          servos[5].writeMicroseconds((uint16_t)data_output[5]);
+        } else {
+          servos[i].setTarget(data_output[i]);
+        }
       }
     }
   }  
