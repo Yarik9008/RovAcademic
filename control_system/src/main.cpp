@@ -53,7 +53,7 @@ void setup() {
   servos[4].setSpeed(SPEED_SERVO);
   servos[4].setAccel(ACCELERATE_SERVO);
   servos[4].writeMicroseconds(SERVO_CENTER);
-  servos[4].setAutoDetach(true);
+  servos[4].setAutoDetach(false);
 
   // подключаем сервопривод манипулятора
   servos[5].attach(PIN_SERVO_ARM, SERVO_MIN, SERVO_MAX, ARM_INIT_ANGLE);
@@ -155,8 +155,9 @@ void loop() {
         data_output[5] = GRIP_OPEN;
       } else if (data_input[5] == -1) {
         data_output[5] = GRIP_CLOSE;
+      } else if (data_input[5] == 0) {
+        data_output[5] = SERVO_CENTER;
       }
-      // Если data_input[5] == 0, оставляем текущее значение
     
       // Проверка и ограничение значений в диапазоне SERVO_MIN-SERVO_MAX
       for (int i = 0; i < 6; i++) {

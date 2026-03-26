@@ -40,17 +40,17 @@ const uint16_t SERVO_CENTER = 1500;
 
 // Константы для манипулятора
 const uint16_t GRIP_OPEN = 2000;
-const uint16_t GRIP_CLOSE = 1300;
-const uint16_t ARM_SPEED = 200;
+const uint16_t GRIP_CLOSE = 1000;
+const uint16_t ARM_SPEED = 500;
 const float ARM_ACCEL = 1.0;
-const uint16_t ARM_INIT_ANGLE = 52;
+const uint16_t ARM_INIT_ANGLE = 90;
 
 // Константы для камеры
 const int16_t CAM_STEP = 20;  // шаг изменения позиции камеры
 
 // Константы для таймеров
 const uint16_t SERVO_UPDATE_INTERVAL = 10;  // интервал обновления сервоприводов (мс)
-const uint16_t LED_BLINK_INTERVAL = 500;    // интервал мигания LED (мс)
+const uint16_t LED_BLINK_INTERVAL = 100;    // интервал мигания LED (мс)
 
 // Количество ожидаемых данных от пульта управления
 const uint8_t EXPECTED_DATA_COUNT = 9;
