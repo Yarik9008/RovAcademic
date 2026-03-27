@@ -1,0 +1,81 @@
+# =============================================================================
+# ROV Academic — корневой .gitignore (PlatformIO, STM32, редакторы, ОС)
+# Подпроекты могут иметь свой .gitignore; правила здесь действуют на всё дерево.
+# =============================================================================
+
+# --- PlatformIO / сборка ---
+.pio/
+.pioenvs/
+**/.pio/
+# Кэш зависимостей (редко вне .pio; на всякий случай)
+.piolibdeps/
+
+# Флаги IntelliSense, иногда создаёт PIO в корне env
+.gcc-flags.json
+.clang_complete
+
+# --- LSP / анализ кода ---
+compile_commands.json
+**/.clangd/
+**/.cache/
+
+# Кэш C/C++ extension VS Code (дублирует смысл подпроектов)
+**/.vscode/ipch/
+**/.vscode/.browse.c_cpp.db*
+
+# Дубликаты файлов Windows («launch (2).json» и т.п.)
+**/* ([0-9]).json
+
+# --- CMake / другие генераторы (если появятся) ---
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+build/
+out/
+
+# --- Python (скрипты, утилиты в репозитории) ---
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+env/
+
+# --- Секреты и локальная конфигурация ---
+.env
+.env.*
+!.env.example
+
+# --- Логи и временные файлы ---
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+
+# --- JetBrains / CLion ---
+.idea/
+*.iml
+
+# --- ОС: Windows ---
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# --- ОС: macOS ---
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# --- ОС: Linux (KDE и др.) ---
+.directory
+
+# --- Отладочные дампы ---
+*.dSYM/
+*.su
+*.stackdump

@@ -1,46 +1,148 @@
-// подключаем библиотеки 
+/**
+ * @file main.cpp
+ * Плата управления: приём команд по UART от геймпада, смешивание моторов, серво камеры и захвата.
+ *
+ * Цикл: таймаут связи → безопасные значения; иначе парсинг пакета → валидация → обновление выходов.
+ * Поля B7 и B8 проверяются по диапазону, на плате не задействованы (резерв протокола с gamepad).
+ */
+
 #include <Arduino.h>
 #include <Servo.h>
 #include <GParser.h>
 #include <AsyncStream.h>
 #include <ServoSmooth.h>
-#include <config.h>
 
+#include "config.h"
 
-ServoSmooth servos[6];
+// ---------------------------------------------------------------------------
+// Глобальное состояние
+// ---------------------------------------------------------------------------
 
+ServoSmooth servos[NUM_CHANNELS];
 AsyncStream<100> serialCom(&Serial1, '\n');
 
-uint32_t turnTimer = 0;
-uint32_t ledTimer = 0;
-uint32_t lastDataTime = 0;  
-int ledState = LOW;
+static uint32_t turnTimer = 0;
+static uint32_t ledTimer = 0;
+static uint32_t lastDataTime = 0;
+static int ledState = LOW;
 
-// Массив для отправки данных на полезную нагрузку
-// [MOTOR1, MOTOR2, MOTOR3, MOTOR4, CAM, GRIP]
-int data_output[6] = {SERVO_CENTER, SERVO_CENTER, SERVO_CENTER, SERVO_CENTER, SERVO_CENTER, GRIP_CLOSE};
-// значения по умолчанию
-const int data_output_default[6] = {SERVO_CENTER, SERVO_CENTER, SERVO_CENTER, SERVO_CENTER, SERVO_CENTER, GRIP_CLOSE};
+/**
+ * Режим индикации LED_PIN: 0 — мигание (есть связь по пакетам);
+ * −1 / +1 — фиксированный уровень с поля LED пульта.
+ */
+static int8_t ledUiMode = 0;
 
+/** Уже вошли в fail-safe по таймауту (не дёргать приводы каждый кадр повторно). */
+static bool failSafeLatched = false;
+
+/** Целевые PWM (мкс) на приводы: [M1, M2, M3, M4, CAM, GRIP]. */
+static int data_output[NUM_CHANNELS] = {
+    SERVO_CENTER, SERVO_CENTER, SERVO_CENTER, SERVO_CENTER, SERVO_CENTER, GRIP_CLOSE};
+
+static const int data_output_default[NUM_CHANNELS] = {
+    SERVO_CENTER, SERVO_CENTER, SERVO_CENTER, SERVO_CENTER, SERVO_CENTER, GRIP_CLOSE};
+
+// ---------------------------------------------------------------------------
+// Вспомогательные функции
+// ---------------------------------------------------------------------------
+
+/** Записать цели в ServoSmooth; захват — без сглаживания (writeMicroseconds). */
+static void applyServoTargets() {
+  for (uint8_t i = 0; i < NUM_CHANNELS; i++) {
+    if (i == GRIP_CHANNEL_INDEX) {
+      servos[GRIP_CHANNEL_INDEX].writeMicroseconds((uint16_t)data_output[GRIP_CHANNEL_INDEX]);
+    } else {
+      servos[i].setTarget(data_output[i]);
+    }
+  }
+}
+
+/**
+ * Проверка диапазонов полей пакета (согласовано с прошивкой gamepad).
+ * @return true если все поля допустимы.
+ */
+static bool packetDataValid(const int* d) {
+  for (int i = 0; i < 4; i++) {
+    if (d[i] < (int)SERVO_MIN || d[i] > (int)SERVO_MAX) {
+      return false;
+    }
+  }
+  for (int j = 4; j <= 6; j++) {
+    if (d[j] < -1 || d[j] > 1) {
+      return false;
+    }
+  }
+  if (d[7] != 0 && d[7] != 1) {
+    return false;
+  }
+  if (d[8] != 0 && d[8] != 1) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Заполнить data_output из распарсенного пакета (после packetDataValid).
+ * Моторы: дифференциал по второму стику; M3/M4 — вертикаль первого стика.
+ */
+static void fillOutputsFromPacket(const int* in) {
+  data_output[0] = in[3] + in[2] - SERVO_CENTER;
+  data_output[1] = in[3] - in[2] + SERVO_CENTER;
+  data_output[2] = in[1];
+  data_output[3] = (SERVO_CENTER * 2) - in[1];
+
+  const int16_t cam_delta = in[4] * CAM_STEP;
+  data_output[4] = constrain(data_output[4] + cam_delta, SERVO_MIN, SERVO_MAX);
+
+  if (in[5] == 1) {
+    data_output[5] = GRIP_OPEN;
+  } else if (in[5] == -1) {
+    data_output[5] = GRIP_CLOSE;
+  } else {
+    data_output[5] = SERVO_CENTER;
+  }
+
+  for (uint8_t i = 0; i < NUM_CHANNELS; i++) {
+    data_output[i] = constrain(data_output[i], SERVO_MIN, SERVO_MAX);
+  }
+
+  ledUiMode = (int8_t)in[6];
+}
+
+#if DEBUG
+static void debugPrintOutputs() {
+  Serial.print(data_output[0]);
+  Serial.print(' ');
+  Serial.print(data_output[1]);
+  Serial.print(' ');
+  Serial.print(data_output[2]);
+  Serial.print(' ');
+  Serial.print(data_output[3]);
+  Serial.print(' ');
+  Serial.print(data_output[4]);
+  Serial.print(' ');
+  Serial.println(data_output[5]);
+}
+#endif
+
+// ---------------------------------------------------------------------------
+// Arduino
+// ---------------------------------------------------------------------------
 
 void setup() {
-  // подключение светодиода для индикации работы
   pinMode(LED_PIN, OUTPUT);
 
-  // подключение отладочного сериала 
   Serial.begin(BITRATE);
 
-  // подключение сериала для общения с постом управления 
   Serial1.setRx(UART_RX);
   Serial1.setTx(UART_TX);
   Serial1.begin(BITRATE);
-  
-  // инициализация таймера получения данных
+
   lastDataTime = millis();
-  
-  // подключаем моторы 
-  const uint16_t motor_pins[4] = {PIN_MOTOR_1, PIN_MOTOR_2, PIN_MOTOR_3, PIN_MOTOR_4};
-  for (int i = 0; i < 4; i++) {
+
+  const uint16_t motor_pins[MOTOR_COUNT] = {
+      PIN_MOTOR_1, PIN_MOTOR_2, PIN_MOTOR_3, PIN_MOTOR_4};
+  for (uint8_t i = 0; i < MOTOR_COUNT; i++) {
     servos[i].attach(motor_pins[i], SERVO_MIN, SERVO_MAX, 90);
     servos[i].setDirection(MOTOR_INVERT[i]);
     servos[i].setSpeed(SPEED_MOTORS);
@@ -48,140 +150,91 @@ void setup() {
     servos[i].setAutoDetach(false);
   }
 
-  // подключаем сервопривод камеры
-  servos[4].attach(PIN_SERVO_CAM, SERVO_MIN, SERVO_MAX, 90);
-  servos[4].setSpeed(SPEED_SERVO);
-  servos[4].setAccel(ACCELERATE_SERVO);
-  servos[4].writeMicroseconds(SERVO_CENTER);
-  servos[4].setAutoDetach(true);
+  servos[CAM_CHANNEL_INDEX].attach(PIN_SERVO_CAM, SERVO_MIN, SERVO_MAX, 90);
+  servos[CAM_CHANNEL_INDEX].setSpeed(SPEED_SERVO);
+  servos[CAM_CHANNEL_INDEX].setAccel(ACCELERATE_SERVO);
+  servos[CAM_CHANNEL_INDEX].writeMicroseconds(SERVO_CENTER);
+  servos[CAM_CHANNEL_INDEX].setAutoDetach(true);
 
-  servos[5].attach(PIN_SERVO_ARM, SERVO_MIN, SERVO_MAX, ARM_INIT_ANGLE);
-  servos[5].writeMicroseconds(GRIP_CLOSE);
-  servos[5].setAutoDetach(false);
+  servos[GRIP_CHANNEL_INDEX].attach(PIN_SERVO_ARM, SERVO_MIN, SERVO_MAX, ARM_INIT_ANGLE);
+  servos[GRIP_CHANNEL_INDEX].writeMicroseconds(GRIP_CLOSE);
+  servos[GRIP_CHANNEL_INDEX].setAutoDetach(false);
 
-  // Задержка для инициализации моторов
   delay(3000);
 }
 
-// главный цикл работы
 void loop() {
-  // проверка таймаута получения данных
-  if (millis() - lastDataTime >= DATA_TIMEOUT) {
-    // если данные не получены в течение таймаута, устанавливаем значения по умолчанию
-    for (int i = 0; i < 6; i++) {
+  // Связь: сброс fail-safe при восстановлении; иначе один раз применить дефолты.
+  if (millis() - lastDataTime < DATA_TIMEOUT) {
+    failSafeLatched = false;
+  } else if (!failSafeLatched) {
+    failSafeLatched = true;
+    ledUiMode = 0;
+    for (uint8_t i = 0; i < NUM_CHANNELS; i++) {
       data_output[i] = data_output_default[i];
-      if (i == 5) {
-        servos[5].writeMicroseconds((uint16_t)data_output[5]);
-      } else {
-        servos[i].setTarget(data_output[i]);
-      }
     }
+    applyServoTargets();
   }
-  
-  // обновление сервоприводов
-  if (millis() - turnTimer >= SERVO_UPDATE_INTERVAL){
+
+  if (millis() - turnTimer >= SERVO_UPDATE_INTERVAL) {
     turnTimer = millis();
-    for (int i = 0; i < 6; i++) {
+    for (uint8_t i = 0; i < NUM_CHANNELS; i++) {
       servos[i].tick();
     }
   }
 
-  // мигалка для индикации работы
-  if (millis() - ledTimer >= LED_BLINK_INTERVAL){
-    ledTimer = millis();
-    ledState = !ledState;
-    digitalWrite(LED_PIN, ledState);
+  if (ledUiMode == 0) {
+    if (millis() - ledTimer >= LED_BLINK_INTERVAL) {
+      ledTimer = millis();
+      ledState = !ledState;
+      digitalWrite(LED_PIN, ledState);
+    }
+  } else {
+    digitalWrite(LED_PIN, ledUiMode > 0 ? HIGH : LOW);
   }
-    
-  // если данные получены
-  if (serialCom.available()) {
-    // парсим данные по разделителю, возвращает список интов 
-    GParser data = GParser(serialCom.buf, ' ');
 
-    if (DEBUG) {
-      Serial.print("Received: ");
-      Serial.println(serialCom.buf);
-    }
+  if (!serialCom.available()) {
+    return;
+  }
 
-    if (data.amount() == EXPECTED_DATA_COUNT){
-      // обновляем время последнего получения данных только при успешном парсинге
-      lastDataTime = millis();
-      
-      // Формат входных данных: joy1X joy1Y joy2X joy2Y CAM GRIP LED B7 B8
-      // Используем статический массив вместо VLA для безопасности
-      int data_input[INPUT_DATA_BUFFER_SIZE];
-      int parsed_count = data.parseInts(data_input);
-      
-      // Проверка успешности парсинга
-      if (parsed_count != EXPECTED_DATA_COUNT) {
-        if (DEBUG) {
-          Serial.print("Parse error: expected ");
-          Serial.print(EXPECTED_DATA_COUNT);
-          Serial.print(", got ");
-          Serial.println(parsed_count);
-        }
-        return;  // Пропускаем обработку при ошибке парсинга
-      }
+  GParser data(serialCom.buf, ' ');
 
-      // Валидация входных данных (ожидаем значения джойстиков в диапазоне 1000-2000)
-      bool data_valid = true;
-      for (int i = 0; i < 4; i++) {
-        if (data_input[i] < SERVO_MIN || data_input[i] > SERVO_MAX) {
-          data_valid = false;
-          break;
-        }
-      }
-      
-      if (!data_valid) {
-        if (DEBUG) {
-          Serial.println("Invalid input data range");
-        }
-        return;  // Пропускаем обработку при невалидных данных
-      }
+  if (DEBUG) {
+    Serial.print(F("Received: "));
+    Serial.println(serialCom.buf);
+  }
 
-      // Формируем управляющие значения для полезной нагрузки
-      // [MOTOR1, MOTOR2, MOTOR3, MOTOR4, CAM, GRIP]
-      // Дифференциальное управление моторами на основе джойстиков
-      data_output[0] = data_input[3] + data_input[2] - SERVO_CENTER;  // MOTOR1: joy2X + joy2Y
-      data_output[1] = data_input[3] - data_input[2] + SERVO_CENTER;  // MOTOR2: joy2X - joy2Y
-      data_output[2] = data_input[1];  // MOTOR3: прямое значение joy1Y
-      data_output[3] = (SERVO_CENTER * 2) - data_input[1];  // MOTOR4: инвертированное joy1Y
+  if (data.amount() != EXPECTED_DATA_COUNT) {
+    return;
+  }
 
-      // Управление камерой: накопительное изменение позиции
-      int16_t cam_delta = data_input[4] * CAM_STEP;
-      data_output[4] = constrain(data_output[4] + cam_delta, SERVO_MIN, SERVO_MAX);
+  int data_input[INPUT_DATA_BUFFER_SIZE];
+  const int parsed_count = data.parseInts(data_input);
 
-      // Управление манипулятором: дискретные состояния
-      if (data_input[5] == 1) {
-        data_output[5] = GRIP_OPEN;
-      } else if (data_input[5] == -1) {
-        data_output[5] = GRIP_CLOSE;
-      } else if (data_input[5] == 0) {
-        data_output[5] = SERVO_CENTER;
-      }
-    
-      // Проверка и ограничение значений в диапазоне SERVO_MIN-SERVO_MAX
-      for (int i = 0; i < 6; i++) {
-        data_output[i] = constrain(data_output[i], SERVO_MIN, SERVO_MAX);
-      }
+  if (parsed_count != EXPECTED_DATA_COUNT) {
+#if DEBUG
+    Serial.print(F("Parse error: expected "));
+    Serial.print(EXPECTED_DATA_COUNT);
+    Serial.print(F(", got "));
+    Serial.println(parsed_count);
+#endif
+    return;
+  }
 
-      if (DEBUG) {
-        Serial.print(data_output[0]); Serial.print(" ");
-        Serial.print(data_output[1]); Serial.print(" ");
-        Serial.print(data_output[2]); Serial.print(" ");
-        Serial.print(data_output[3]); Serial.print(" ");
-        Serial.print(data_output[4]); Serial.print(" ");
-        Serial.println(data_output[5]);
-      }
+  if (!packetDataValid(data_input)) {
+#if DEBUG
+    Serial.println(F("Invalid input data range"));
+#endif
+    return;
+  }
 
-      // отправляем значения на полезную нагрузку (манипулятор — без сглаживания)
-      for (int i = 0; i < 6; i++) {
-        if (i == 5) {
-          servos[5].writeMicroseconds((uint16_t)data_output[5]);
-        } else {
-          servos[i].setTarget(data_output[i]);
-        }
-      }
-    }
-  }  
+  lastDataTime = millis();
+
+  fillOutputsFromPacket(data_input);
+
+#if DEBUG
+  debugPrintOutputs();
+#endif
+
+  applyServoTargets();
 }

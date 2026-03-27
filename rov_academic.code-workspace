@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"name": "control_system",
+			"path": "control_system"
+		},
+		{
+			"name": "gamepad",
+			"path": "gamepad"
+		},
+		{
+			"name": "gripper",
+			"path": "gripper"
+		}
+	],
+	"settings": {}
+}
