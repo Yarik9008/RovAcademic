@@ -1,7 +1,7 @@
 // подключаем библиотеки 
 #include <Arduino.h>
 #include <AsyncStream.h>
-#include <Config.h>
+#include "config.h"
 
 
 AsyncStream<200> serial1(&Serial1, '\n');

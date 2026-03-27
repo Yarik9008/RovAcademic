@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include <Config.h>
+#include "config.h"
 
 uint16_t count1 = 0;
 unsigned long previousMillis = 0;
