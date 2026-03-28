@@ -47,6 +47,10 @@ env/
 .env.*
 !.env.example
 
+# --- Редактор Cursor и локальные workflow GitHub (не коммитим) ---
+.cursor/
+.github/
+
 # --- Логи и временные файлы ---
 *.log
 *.tmp
