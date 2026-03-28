@@ -17,6 +17,7 @@
 # --- LSP / анализ кода ---
 compile_commands.json
 **/.clangd/
+/.clangd
 **/.cache/
 
 # Кэш C/C++ extension VS Code (дублирует смысл подпроектов)
