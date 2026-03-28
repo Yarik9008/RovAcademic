@@ -1,13 +1,12 @@
-// подключаем библиотеки 
+// Приём строки по Serial1 до '\n', вывод в USB Serial через StringUtils::Text.
 #include <Arduino.h>
-#include <AsyncStream.h>
+#include <StringUtils.h>
 #include "config.h"
 
-
-AsyncStream<200> serial1(&Serial1, '\n');
+static char lineBuf[200];
+static size_t lineLen = 0;
 
 void setup() {
-  // подключение отладочного сериала 
   Serial.begin(115200);
 
   Serial1.setRx(SERIAL1_RX);
@@ -15,12 +14,25 @@ void setup() {
   Serial1.begin(SERIAL_BAUD);
 }
 
-
 void loop() {
-  
-  // если данные получены
-  if (serial1.available()) {
-    Serial.println(serial1.buf);
-  }  
-
+  while (Serial1.available()) {
+    const char c = static_cast<char>(Serial1.read());
+    if (c == '\n') {
+      if (lineLen < sizeof(lineBuf)) {
+        lineBuf[lineLen] = '\0';
+      } else {
+        lineBuf[sizeof(lineBuf) - 1] = '\0';
+      }
+      const Text line(lineBuf);
+      line.printTo(Serial);
+      Serial.println();
+      lineLen = 0;
+    } else if (c != '\r') {
+      if (lineLen < sizeof(lineBuf) - 1) {
+        lineBuf[lineLen++] = c;
+      } else {
+        lineLen = 0;
+      }
+    }
+  }
 }

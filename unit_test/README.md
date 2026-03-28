@@ -12,5 +12,5 @@
 | [rov_test_imu/](rov_test_imu/README.md) | IMU **BNO085** (I2C) |
 | [rov_test_ina219/](rov_test_ina219/README.md) | **INA219**, лог на UART1 |
 | [rov_test_motor/](rov_test_motor/README.md) | 4× PWM моторы, **Arduino Nano**, класс ROVMotor |
-| [rov_test_serial_rx/](rov_test_serial_rx/README.md) | Приём по UART (**AsyncStream**) |
+| [rov_test_serial_rx/](rov_test_serial_rx/README.md) | Приём по UART (**StringUtils** `Text`) |
 | [rov_test_serial_tx/](rov_test_serial_tx/README.md) | Передача счётчика по UART1 |

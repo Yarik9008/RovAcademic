@@ -8,9 +8,9 @@
 
 #include <Arduino.h>
 #include <Servo.h>
-#include <GParser.h>
 #include <AsyncStream.h>
 #include <ServoSmooth.h>
+#include <StringUtils.h>
 
 #include "config.h"
 
@@ -197,19 +197,19 @@ void loop() {
     return;
   }
 
-  GParser data(serialCom.buf, ' ');
-
   if (DEBUG) {
     Serial.print(F("Received: "));
     Serial.println(serialCom.buf);
   }
 
-  if (data.amount() != EXPECTED_DATA_COUNT) {
+  const Text line(serialCom.buf);
+  if (su::list::length(line, ' ') != EXPECTED_DATA_COUNT) {
     return;
   }
 
   int data_input[INPUT_DATA_BUFFER_SIZE];
-  const int parsed_count = data.parseInts(data_input);
+  const uint16_t parsed_count =
+      su::list::parse(line, data_input, EXPECTED_DATA_COUNT, ' ');
 
   if (parsed_count != EXPECTED_DATA_COUNT) {
 #if DEBUG
