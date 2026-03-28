@@ -1,7 +1,9 @@
 /**
  * @file main.cpp
- * Манипулятор: измерение PWM с платы управления, приведение к направлению/остановке мотора,
- * защита по току INA219, телеметрия в Serial.
+ * Манипулятор ROV: приём PWM-команды от платы управления, управление мотором (DRV8870),
+ * защита по току через INA219 (I2C), диагностика в Serial (UART).
+ *
+ * Цикл: декодирование PWM → определение направления → контроль тока → телеметрия.
  */
 
 #include <Arduino.h>
@@ -16,56 +18,60 @@
 // ---------------------------------------------------------------------------
 
 static Adafruit_INA219 ina219;
-static bool sensor_ok = false;
+static bool sensorOk = false;
 
-static volatile uint32_t pulse_width_us = 0;
-static volatile bool new_pulse = false;
-static volatile bool waiting_rising = true;
-static volatile uint32_t last_rising_time = 0;
+static volatile uint32_t pulseWidthUs = 0;
+static volatile bool newPulse = false;
+static volatile bool waitingRising = true;
+static volatile uint32_t lastRisingTime = 0;
 
-static int16_t motor_speed = 0;
-static int16_t target_speed = 0;
+static int16_t motorSpeed = 0;
+static int16_t targetSpeed = 0;
 
-static bool protection_active = false;
-static int16_t protection_dir = 0;
-static unsigned long motor_start_time = 0;
-static bool motor_running = false;
-static bool startup_delay = false;
+static bool protectionActive = false;
+static int16_t protectionDir = 0;
+static unsigned long motorStartTime = 0;
+static bool motorRunning = false;
+static bool startupDelay = false;
 
-static unsigned long last_update = 0;
-static unsigned long last_print = 0;
-static unsigned long last_led = 0;
-static bool led_state = false;
+static unsigned long lastUpdate = 0;
+static unsigned long lastPrint = 0;
+static unsigned long lastLed = 0;
+static bool ledState = false;
 
 // ---------------------------------------------------------------------------
+// Вспомогательные функции
+// ---------------------------------------------------------------------------
 
+/** ISR: измерение ширины импульса на PULSE_INPUT_PIN (CHANGE), антидребезг DEBOUNCE_US. */
 void pulseInterrupt() {
-  static uint32_t last_time = 0;
+  static uint32_t lastTime = 0;
   const uint32_t now = micros();
 
-  if (now - last_time < DEBOUNCE_US) {
+  if (now - lastTime < DEBOUNCE_US) {
     return;
   }
-  last_time = now;
+  lastTime = now;
 
-  const bool pin_state = digitalRead(PULSE_INPUT_PIN);
+  const bool pinState = digitalRead(PULSE_INPUT_PIN);
 
-  if (pin_state && waiting_rising) {
-    last_rising_time = now;
-    waiting_rising = false;
-  } else if (!pin_state && !waiting_rising) {
-    uint32_t width = now - last_rising_time;
-    if (now < last_rising_time) {
-      width = (0xFFFFFFFFu - last_rising_time) + now + 1u;
+  if (pinState && waitingRising) {
+    lastRisingTime = now;
+    waitingRising = false;
+  } else if (!pinState && !waitingRising) {
+    uint32_t width = now - lastRisingTime;
+    if (now < lastRisingTime) {
+      width = (0xFFFFFFFFu - lastRisingTime) + now + 1u;
     }
     if (width >= PULSE_MIN_US && width <= PULSE_MAX_US) {
-      pulse_width_us = width;
-      new_pulse = true;
+      pulseWidthUs = width;
+      newPulse = true;
     }
-    waiting_rising = true;
+    waitingRising = true;
   }
 }
 
+/** Установить скорость мотора через полумост DRV8870 (0 — стоп, >0 — вперёд, <0 — назад). */
 static void setMotor(int16_t speed) {
   if (speed == 0) {
     analogWrite(MOTOR_IA_PIN, 0);
@@ -77,48 +83,49 @@ static void setMotor(int16_t speed) {
     analogWrite(MOTOR_IA_PIN, 0);
     analogWrite(MOTOR_IB_PIN, speed);
   }
-  motor_speed = speed;
+  motorSpeed = speed;
 }
 
+/** Декодирование ширины импульса в команду мотора; учитывает токовую защиту. */
 static void processPWM() {
-  if (!new_pulse) {
+  if (!newPulse) {
     return;
   }
 
-  const uint32_t pulse = pulse_width_us;
-  new_pulse = false;
+  const uint32_t pulse = pulseWidthUs;
+  newPulse = false;
 
-  int16_t new_speed = MOTOR_SPEED_STOP;
+  int16_t newSpeed = MOTOR_SPEED_STOP;
 
   if (pulse >= PWM_MIN_US && pulse <= PWM_MAX_US) {
     if (pulse < PWM_DEADZONE_MIN_US) {
-      new_speed = MOTOR_SPEED_REVERSE;
+      newSpeed = MOTOR_SPEED_REVERSE;
     } else if (pulse > PWM_DEADZONE_MAX_US) {
-      new_speed = MOTOR_SPEED_FORWARD;
+      newSpeed = MOTOR_SPEED_FORWARD;
     }
   }
 
-  if (protection_active && new_speed != 0) {
-    if ((protection_dir > 0 && new_speed < 0) || (protection_dir < 0 && new_speed > 0)) {
-      protection_active = false;
+  if (protectionActive && newSpeed != 0) {
+    if ((protectionDir > 0 && newSpeed < 0) || (protectionDir < 0 && newSpeed > 0)) {
+      protectionActive = false;
     }
   }
 
-  if (protection_active) {
-    new_speed = MOTOR_SPEED_STOP;
+  if (protectionActive) {
+    newSpeed = MOTOR_SPEED_STOP;
   }
 
-  if (new_speed == target_speed) {
+  if (newSpeed == targetSpeed) {
     return;
   }
 
-  target_speed = new_speed;
-  setMotor(new_speed);
+  targetSpeed = newSpeed;
+  setMotor(newSpeed);
 
   Serial.print(F("Motor: "));
-  if (new_speed == 0) {
+  if (newSpeed == 0) {
     Serial.print(F("STOP"));
-  } else if (new_speed > 0) {
+  } else if (newSpeed > 0) {
     Serial.print(F("FORWARD"));
   } else {
     Serial.print(F("REVERSE"));
@@ -128,31 +135,32 @@ static void processPWM() {
   Serial.println(F("us)"));
 }
 
+/** Опрос INA219; при превышении CURRENT_PROTECTION_THRESHOLD_MA — аварийная остановка. */
 static void checkProtection() {
-  if (!sensor_ok) {
+  if (!sensorOk) {
     return;
   }
 
-  const bool motor_on = (motor_speed != 0);
+  const bool motorOn = (motorSpeed != 0);
   const unsigned long now = millis();
 
-  if (motor_on) {
-    if (!motor_running) {
-      motor_start_time = now;
-      motor_running = true;
-      startup_delay = true;
+  if (motorOn) {
+    if (!motorRunning) {
+      motorStartTime = now;
+      motorRunning = true;
+      startupDelay = true;
     }
 
-    if (startup_delay && (now - motor_start_time >= MOTOR_START_DELAY_MS)) {
-      startup_delay = false;
+    if (startupDelay && (now - motorStartTime >= MOTOR_START_DELAY_MS)) {
+      startupDelay = false;
     }
 
-    if (!startup_delay) {
+    if (!startupDelay) {
       const float current = ina219.getCurrent_mA();
       if (current >= CURRENT_PROTECTION_THRESHOLD_MA) {
-        if (!protection_active) {
-          protection_active = true;
-          protection_dir = motor_speed;
+        if (!protectionActive) {
+          protectionActive = true;
+          protectionDir = motorSpeed;
           Serial.print(F("ЗАЩИТА! Ток: "));
           Serial.print(current, 1);
           Serial.println(F(" mA"));
@@ -161,17 +169,18 @@ static void checkProtection() {
       }
     }
   } else {
-    motor_running = false;
-    startup_delay = false;
+    motorRunning = false;
+    startupDelay = false;
   }
 }
 
+/** Вывод телеметрии в Serial: ширина импульса, ток/напряжение/мощность, состояние мотора. */
 static void printDiagnostics() {
   Serial.print(F("Pulse: "));
-  Serial.print(pulse_width_us);
+  Serial.print(pulseWidthUs);
   Serial.print(F("us | "));
 
-  if (sensor_ok) {
+  if (sensorOk) {
     const float current = ina219.getCurrent_mA();
     const float voltage = ina219.getBusVoltage_V();
     const float power = ina219.getPower_mW();
@@ -187,11 +196,11 @@ static void printDiagnostics() {
   }
 
   Serial.print(F("Motor: "));
-  Serial.print(motor_speed);
+  Serial.print(motorSpeed);
 
-  if (protection_active) {
+  if (protectionActive) {
     Serial.print(F(" [ЗАЩИТА]"));
-  } else if (startup_delay) {
+  } else if (startupDelay) {
     Serial.print(F(" [СТАРТ]"));
   } else {
     Serial.print(F(" [OK]"));
@@ -200,6 +209,8 @@ static void printDiagnostics() {
   Serial.println();
 }
 
+// ---------------------------------------------------------------------------
+// Arduino
 // ---------------------------------------------------------------------------
 
 void setup() {
@@ -215,7 +226,7 @@ void setup() {
 
   Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
   if (ina219.begin()) {
-    sensor_ok = true;
+    sensorOk = true;
     ina219.setCalibration_32V_1A();
   }
 
@@ -230,26 +241,26 @@ void setup() {
 void loop() {
   const unsigned long now = millis();
 
-  if (now - last_led >= LED_BLINK_PERIOD_MS) {
-    led_state = !led_state;
-    digitalWrite(LED_BUILTIN_PIN, led_state ? LOW : HIGH);
-    last_led = now;
+  if (now - lastLed >= LED_BLINK_PERIOD_MS) {
+    ledState = !ledState;
+    digitalWrite(LED_BUILTIN_PIN, ledState ? LOW : HIGH);
+    lastLed = now;
   }
 
-  if (now - last_update < MAIN_LOOP_INTERVAL_MS) {
+  if (now - lastUpdate < MAIN_LOOP_INTERVAL_MS) {
     return;
   }
 
   checkProtection();
 
-  if (new_pulse) {
+  if (newPulse) {
     processPWM();
   }
 
-  if (now - last_print >= DATA_PRINT_INTERVAL_MS) {
+  if (now - lastPrint >= DATA_PRINT_INTERVAL_MS) {
     printDiagnostics();
-    last_print = now;
+    lastPrint = now;
   }
 
-  last_update = now;
+  lastUpdate = now;
 }

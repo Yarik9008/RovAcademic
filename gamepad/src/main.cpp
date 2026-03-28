@@ -17,10 +17,12 @@ static int joy1Y_zero = ADC_MAX_VALUE / 2;
 static int joy2X_zero = ADC_MAX_VALUE / 2;
 static int joy2Y_zero = ADC_MAX_VALUE / 2;
 
-static KalmanFilter kalman_joy1X = {ADC_MAX_VALUE / 2, KALMAN_P_INIT, 0, KALMAN_Q, KALMAN_R};
-static KalmanFilter kalman_joy1Y = {ADC_MAX_VALUE / 2, KALMAN_P_INIT, 0, KALMAN_Q, KALMAN_R};
-static KalmanFilter kalman_joy2X = {ADC_MAX_VALUE / 2, KALMAN_P_INIT, 0, KALMAN_Q, KALMAN_R};
-static KalmanFilter kalman_joy2Y = {ADC_MAX_VALUE / 2, KALMAN_P_INIT, 0, KALMAN_Q, KALMAN_R};
+static constexpr float kAdcCenter = static_cast<float>(ADC_MAX_VALUE) / 2.0f;
+
+static KalmanFilter kalman_joy1X = {kAdcCenter, KALMAN_P_INIT, 0.0f, KALMAN_Q, KALMAN_R};
+static KalmanFilter kalman_joy1Y = {kAdcCenter, KALMAN_P_INIT, 0.0f, KALMAN_Q, KALMAN_R};
+static KalmanFilter kalman_joy2X = {kAdcCenter, KALMAN_P_INIT, 0.0f, KALMAN_Q, KALMAN_R};
+static KalmanFilter kalman_joy2Y = {kAdcCenter, KALMAN_P_INIT, 0.0f, KALMAN_Q, KALMAN_R};
 
 static uint32_t ledTimer = 0;
 static int ledState = LOW;
@@ -29,7 +31,10 @@ static int ledState = LOW;
 static unsigned long lastSendTime = 0;
 
 // ---------------------------------------------------------------------------
+// Вспомогательные функции
+// ---------------------------------------------------------------------------
 
+/** Один шаг фильтра Калмана: предсказание + коррекция. */
 static float applyKalmanFilter(KalmanFilter &kf, float measurement) {
   kf.P = kf.P + kf.Q;
   kf.K = kf.P / (kf.P + kf.R);
@@ -53,8 +58,8 @@ static int readJoystick(int pin, int zero, KalmanFilter &kf, float coefficient, 
   offset = constrain(offset, -static_cast<int>(MAX_JOYSTICK_RANGE), static_cast<int>(MAX_JOYSTICK_RANGE));
   offset = static_cast<int>(offset * coefficient);
 
-  const int range = static_cast<int>(MAX_JOYSTICK_RANGE - MIN_JOYSTIK_RANGE);
-  int value = static_cast<int>(CENTER_JOYSTIK_RANGE) + (offset * range) / (MAX_JOYSTICK_RANGE * 2);
+  const int range = static_cast<int>(MAX_JOYSTICK_RANGE - MIN_JOYSTICK_RANGE);
+  int value = static_cast<int>(CENTER_JOYSTICK_RANGE) + (offset * range) / (MAX_JOYSTICK_RANGE * 2);
 
   if (invert) {
     value = 3000 - value;
@@ -112,6 +117,7 @@ static void debugPrintFrame(const int *joy, const int *buttons) {
 }
 #endif
 
+/** Отправка кадра (оси + кнопки) на плату управления по Serial1. */
 static void sendFrameToControlBoard(const int *joy, const int *buttons) {
   Serial1.print(joy[0]);
   Serial1.print(' ');
@@ -132,6 +138,8 @@ static void sendFrameToControlBoard(const int *joy, const int *buttons) {
   Serial1.println(buttons[4]);
 }
 
+// ---------------------------------------------------------------------------
+// Arduino
 // ---------------------------------------------------------------------------
 
 void setup() {

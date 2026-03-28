@@ -1,9 +1,12 @@
 /**
  * @file config.h
- * Пульт управления ROV: пины джойстиков и кнопок, нормализация в PWM (мкс), фильтр Калмана, UART к плате управления.
+ * Пульт управления ROV: пины, тайминги и константы прошивки (STM32 + Arduino framework).
+ * Джойстики (АЦП), кнопки, фильтр Калмана, нормализация в PWM (мкс), UART к плате управления.
  */
 
 #pragma once
+
+#include <Arduino.h>
 
 // --- Отладка и тесты ---
 /** Вывод осей и кнопок в Serial (USB). */
@@ -52,9 +55,8 @@ const uint16_t ADC_MAX_VALUE = 4095;
 
 const uint16_t DEAD_ZONE = 250;
 
-/** Имена с опечаткой (JOYSTIK) сохранены — используются в readJoystick. */
-const uint16_t MIN_JOYSTIK_RANGE = 1000;
-const uint16_t CENTER_JOYSTIK_RANGE = 1500;
+const uint16_t MIN_JOYSTICK_RANGE = 1000;
+const uint16_t CENTER_JOYSTICK_RANGE = 1500;
 const uint16_t MAX_JOYSTICK_RANGE = 2000;
 
 // --- Фильтр Калмана (сырое ADC → сглаженное) ---

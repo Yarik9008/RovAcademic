@@ -1,0 +1,3 @@
+# PlatformIO puts library headers under .pio/libdeps; use generated compile_commands.json.
+CompileFlags:
+  CompilationDatabase: .

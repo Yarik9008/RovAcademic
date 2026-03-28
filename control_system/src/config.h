@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <Arduino.h>
+
 // --- Отладка ---
 /** Включить вывод в Serial (USB); на полевых испытаниях лучше false. */
 const bool DEBUG = false;
@@ -59,8 +61,11 @@ const uint8_t GRIP_CHANNEL_INDEX = 5;
 /** Шаг накопления угла камеры за один тик кнопки CAM (−1/0/1). */
 const int16_t CAM_STEP = 20;
 
-const uint16_t SERVO_UPDATE_INTERVAL = 10;  // период вызова ServoSmooth::tick (мс)
-const uint16_t LED_BLINK_INTERVAL = 100;      // период мигания PC13 при ledUiMode == 0 (мс)
+/** Период вызова ServoSmooth::tick (мс). */
+const uint16_t SERVO_UPDATE_INTERVAL = 10;
+
+/** Период мигания PC13 при ledUiMode == 0 (мс). */
+const uint16_t LED_BLINK_INTERVAL = 100;
 
 // --- Протокол UART с геймпадом (строка, разделитель пробел, завершение \\n) ---
 /** Ожидаемое число полей: joy1X joy1Y joy2X joy2Y CAM GRIP LED B7 B8 */
