@@ -7,11 +7,10 @@
 ```mermaid
 flowchart LR
   GP["Пульт<br/>gamepad"] -->|"RS-422 кабель<br/>57600 бод<br/>на МК: UART PA9/PA10"| CT["Борт ROV<br/>control_system"]
-  CT -->|"RC-PWM<br/>вход PA7"| GR["Манипулятор<br/>gripper"]
+  CT --> GR["Серво захвата / манипулятор<br/>gripper<br/>PB0"]
 
   CT --- M["4× мотор ESC<br/>PA3 … PA6"]
   CT --- CAM["Серво камеры<br/>PA7"]
-  CT --- ARM["Серво захвата<br/>PB0"]
 ```
 
 | Связь | Интерфейс | Пины | Примечание |
@@ -20,22 +19,29 @@ flowchart LR
 | Борт → моторы | PWM 1000–2000 µs | `PA6` M1, `PA5` M2, `PA4` M3, `PA3` M4 | Регуляторы хода |
 | Борт → камера | Серво PWM | `PA7` | Накопительное управление по дельте |
 | Борт → захват | Серво PWM | `PB0` | Три состояния: открыть / закрыть / нейтраль |
-| Борт → манипулятор | RC-PWM | вход `PA7` на плате gripper | Манипулятор входит в состав аппарата; DC и H-мост на плате gripper. Иной вариант схемы — серво захвата на борту (`PB0`) |
+| Борт → манипулятор | RC-PWM / серво PWM | выход борта `PB0` (`PIN_SERVO_ARM` в прошивке `control_system`); на плате `gripper` — вход `PA7` | Альтернатива без отдельной платы `gripper` — только серво захвата с борта (строка выше) |
 | Манипулятор | H-мост DRV8870 | `PA11`, `PA12` | Защита по INA219 (`PB6` SCL / `PB7` SDA) |
 | Манипулятор | UART телеметрия 115200 | `PA9` TX, `PA10` RX | Диагностика в Serial |
 
 Все три модуля — логика 3.3 V, Blue Pill (72 МГц, 64 КБ Flash, 20 КБ RAM). Силовая часть (аккумуляторы, BEC, ESC) задаётся внешней электрической схемой и в данном репозитории не описана.
 
-Распиновка каждого модуля — в `src/config.h` соответствующего проекта.
+Распиновка каждого модуля — в `src/config.h` соответствующего проекта внутри [Software/](Software/).
 
-## Состав репозитория
+## Структура репозитория
 
 | Каталог | Описание |
 | ------- | -------- |
-| [gamepad/](gamepad/) | Пульт: опрос джойстиков и кнопок, фильтр Калмана, отправка пакета по UART (на линии — RS-422) |
-| [control_system/](control_system/) | Борт: приём команд, дифференциальный миксер на 4 мотора, управление камерой и захватом |
-| [gripper/](gripper/) | Манипулятор: приём RC-PWM, DC-мотор через H-мост, токовая защита INA219 |
-| [unit_test/](unit_test/) | Тестовые скетчи для отладки отдельных узлов — см. [unit_test/README.md](unit_test/README.md) |
+| [Software/](Software/) | Прошивки и тестовые PlatformIO-проекты — см. [Software/README.md](Software/README.md) |
+| [Hardware/](Hardware/) | Схемы, производственные данные плат, осциллограммы — см. [Hardware/README.md](Hardware/README.md) |
+
+## Состав прошивок
+
+| Каталог | Описание |
+| ------- | -------- |
+| [Software/gamepad/](Software/gamepad/) | Пульт: опрос джойстиков и кнопок, фильтр Калмана, отправка пакета по UART (на линии — RS-422) |
+| [Software/control_system/](Software/control_system/) | Борт: приём команд, дифференциальный миксер на 4 мотора, управление камерой и захватом |
+| [Software/gripper/](Software/gripper/) | Манипулятор: приём RC-PWM, DC-мотор через H-мост, токовая защита INA219 |
+| [Software/unit_test/](Software/unit_test/) | Тестовые скетчи — см. [Software/unit_test/README.md](Software/unit_test/README.md) |
 
 ## Протокол связи пульт → борт
 
@@ -60,7 +66,7 @@ joy1X joy1Y joy2X joy2Y CAM GRIP LED B7 B8
 Требуется [PlatformIO](https://platformio.org/) (CLI или расширение для VS Code / Cursor).
 
 ```bash
-cd <каталог проекта>   # gamepad / control_system / gripper
+cd Software/<проект>    # gamepad | control_system | gripper | unit_test/…
 pio run                # сборка
 pio run -t upload      # прошивка
 pio device monitor     # монитор порта
