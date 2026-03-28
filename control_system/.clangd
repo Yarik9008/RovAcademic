@@ -1,0 +1,5 @@
+# When this folder is the workspace root, there is no parent .clangd with PathMatch.
+CompileFlags:
+  CompilationDatabase: .
+  Add:
+    - -DGCC_VERSION=130200
