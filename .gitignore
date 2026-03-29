@@ -24,8 +24,12 @@ compile_commands.json
 **/.vscode/ipch/
 **/.vscode/.browse.c_cpp.db*
 
-# Дубликаты файлов Windows («launch (2).json» и т.п.)
+# Дубликаты файлов Windows («файл (2).ext» при копировании в Проводнике)
 **/* ([0-9]).json
+**/* ([0-9]).md
+**/* ([0-9]).cpp
+**/* ([0-9]).h
+**/* ([0-9]).ini
 
 # --- CMake / другие генераторы (если появятся) ---
 CMakeCache.txt
